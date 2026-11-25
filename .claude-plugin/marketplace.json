@@ -1,0 +1,13 @@
+{
+  "name": "claude-digital-rain",
+  "description": "Digital Rain: a GPU digital-rain theme for the Claude desktop app, with a green-rain dark mode and a white-room light mode.",
+  "owner": {
+    "name": "dontcallmejames"
+  },
+  "plugins": [
+    {
+      "name": "digital-rain",
+      "source": "./"
+    }
+  ]
+}
