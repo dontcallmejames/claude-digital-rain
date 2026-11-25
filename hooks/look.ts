@@ -181,41 +181,135 @@ export const SOUND: ThemeSound = {
   },
 }
 
-// Paper: the rain printed on e-ink. A warm grey page, charcoal ink, the
-// leading glyphs in the muted green a color e-ink screen gives, and nothing
-// that glows. It is a look of its own, always light, with its own palette.
-const paper = makeColors({
-  label: 'Digital Rain Paper',
-  only: 'light',
-  roles: { accent: '#3f7a55', danger: '#a8453b', success: '#3d7f74', warning: '#9a7420', pro: '#4d5f9a' },
-  light: {
-    gray: {
-      anchors: {
-        'surface-0': '#e4e0d6',
-        'surface-1': '#ebe8df',
-        'surface-2': '#f3f1ea',
-        'text-primary': '#1f2622',
-        'text-secondary': '#434b45',
-        'text-muted': '#5c645e',
-      },
+// Paper: the rain printed on e-ink. Nothing glows; the leading glyphs take
+// the muted green a color e-ink screen gives. It comes in three tones, each
+// with a night paper, e-ink's dark mode: light grey ink on a charcoal page.
+export type Tone = 'warm' | 'sepia' | 'slate'
+
+export const TONES: readonly Tone[] = ['warm', 'sepia', 'slate']
+
+type PaperTone = {
+  label: string
+  roles: Parameters<typeof makeColors>[0]['roles']
+  day: Record<'surface-0' | 'surface-1' | 'surface-2' | 'text-primary' | 'text-secondary' | 'text-muted', `#${string}`>
+  night: Record<'surface-0' | 'surface-1' | 'surface-2' | 'surface-3' | 'text-primary' | 'text-secondary' | 'text-muted', `#${string}`>
+  messages: { day: Record<string, `#${string}`>; night: Record<string, `#${string}`> }
+}
+
+const TONE_SPECS: Record<Tone, PaperTone> = {
+  // Warm grey: the classic e-reader page, charcoal ink.
+  warm: {
+    label: 'Digital Rain Paper',
+    roles: { accent: '#3f7a55', danger: '#a8453b', success: '#3d7f74', warning: '#9a7420', pro: '#4d5f9a' },
+    day: {
+      'surface-0': '#e4e0d6',
+      'surface-1': '#ebe8df',
+      'surface-2': '#f3f1ea',
+      'text-primary': '#1f2622',
+      'text-secondary': '#434b45',
+      'text-muted': '#5c645e',
+    },
+    night: {
+      'surface-0': '#1a1a18',
+      'surface-1': '#21211e',
+      'surface-2': '#282825',
+      'surface-3': '#2f2f2b',
+      'text-primary': '#e2dfd6',
+      'text-secondary': '#bdb9ae',
+      'text-muted': '#9e9a8f',
+    },
+    messages: {
+      day: { 'bg-user-message': '#e2e7df', 'text-user-message': '#1b2a20', 'bg-assistant-message': '#f5f2eb', 'text-assistant-message': '#1f2622' },
+      night: { 'bg-user-message': '#25302a', 'text-user-message': '#dfe8e1', 'bg-assistant-message': '#22221f', 'text-assistant-message': '#e2dfd6' },
     },
   },
-})
-
-export const PAPER_COLORS: ThemeColors = {
-  ...paper.theme,
-  inputs: {
-    light: {
-      ...paper.theme.inputs.light,
-      'bg-user-message': '#e2e7df',
-      'text-user-message': '#1b2a20',
-      'bg-assistant-message': '#f5f2eb',
-      'text-assistant-message': '#1f2622',
+  // Sepia: an old paperback, cream pages and brown-black ink, an olive green.
+  sepia: {
+    label: 'Digital Rain Paper, Sepia',
+    roles: { accent: '#5a7a3c', danger: '#a5452f', success: '#4c7d68', warning: '#9a6d1c', pro: '#6a5488' },
+    day: {
+      'surface-0': '#e6dcc6',
+      'surface-1': '#ede5d2',
+      'surface-2': '#f5efe1',
+      'text-primary': '#2a2118',
+      'text-secondary': '#4d4033',
+      'text-muted': '#66594a',
+    },
+    night: {
+      'surface-0': '#1d1914',
+      'surface-1': '#241f19',
+      'surface-2': '#2b251e',
+      'surface-3': '#322b23',
+      'text-primary': '#e9e0cf',
+      'text-secondary': '#c4b8a3',
+      'text-muted': '#a59984',
+    },
+    messages: {
+      day: { 'bg-user-message': '#e4e2cb', 'text-user-message': '#29261a', 'bg-assistant-message': '#f7f1e3', 'text-assistant-message': '#2a2118' },
+      night: { 'bg-user-message': '#2a2a1e', 'text-user-message': '#e6e2cc', 'bg-assistant-message': '#26211b', 'text-assistant-message': '#e9e0cf' },
+    },
+  },
+  // Slate: a cool blue-grey screen, ink with a blue cast, a teal green.
+  slate: {
+    label: 'Digital Rain Paper, Slate',
+    roles: { accent: '#2f7768', danger: '#a54848', success: '#3f7f52', warning: '#946f1f', pro: '#4f5f9e' },
+    day: {
+      'surface-0': '#dde2e5',
+      'surface-1': '#e5e9ec',
+      'surface-2': '#eff2f4',
+      'text-primary': '#1b2228',
+      'text-secondary': '#3d4750',
+      'text-muted': '#56616a',
+    },
+    night: {
+      'surface-0': '#171a1d',
+      'surface-1': '#1d2125',
+      'surface-2': '#24282c',
+      'surface-3': '#2a2f34',
+      'text-primary': '#dde3e7',
+      'text-secondary': '#b6bec5',
+      'text-muted': '#969fa7',
+    },
+    messages: {
+      day: { 'bg-user-message': '#dde8e4', 'text-user-message': '#18282a', 'bg-assistant-message': '#f2f5f6', 'text-assistant-message': '#1b2228' },
+      night: { 'bg-user-message': '#1f2b2a', 'text-user-message': '#dbe8e6', 'bg-assistant-message': '#1f2327', 'text-assistant-message': '#dde3e7' },
     },
   },
 }
 
-export const PAPER_PROBLEMS = paper.problems
+function paperPalette(spec: PaperTone): { colors: ThemeColors; problems: string[] } {
+  const made = makeColors({
+    label: spec.label,
+    roles: spec.roles,
+    light: { gray: { anchors: spec.day } },
+    dark: { gray: { anchors: spec.night } },
+  })
+
+  return {
+    colors: {
+      ...made.theme,
+      inputs: {
+        light: { ...made.theme.inputs.light, ...spec.messages.day },
+        dark: { ...made.theme.inputs.dark, ...spec.messages.night },
+      },
+    },
+    problems: made.problems,
+  }
+}
+
+const PALETTES: Record<Tone, { colors: ThemeColors; problems: string[] }> = {
+  warm: paperPalette(TONE_SPECS.warm),
+  sepia: paperPalette(TONE_SPECS.sepia),
+  slate: paperPalette(TONE_SPECS.slate),
+}
+
+export const PAPER_COLORS: Record<Tone, ThemeColors> = {
+  warm: PALETTES.warm.colors,
+  sepia: PALETTES.sepia.colors,
+  slate: PALETTES.slate.colors,
+}
+
+export const PAPER_PROBLEMS = TONES.flatMap(tone => PALETTES[tone].problems)
 
 // Claude's replies are pages: a paper card with a hairline rule, a whisper of
 // shadow and the console's corner brackets in ink, set in a bookish serif.

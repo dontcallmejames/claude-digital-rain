@@ -1,15 +1,15 @@
 import { expect, test } from 'claude-code/testing'
 
 import { GLYPHS, strokeTable } from '../hooks/glyphs'
-import { COLORS, PAPER_COLORS } from '../hooks/look'
+import { COLORS, PAPER_COLORS, TONES } from '../hooks/look'
 import { checkColors } from '../hooks/make-colors.js'
-import { PAPER_SCENE, SCENE } from '../hooks/scene'
+import { PAPER_SCENES, SCENE } from '../hooks/scene'
 
 const BACKDROP = { plugin: 'digital-rain', surface: 'desktop', component: 'Backdrop' } as const
 const GLASS = { blur: 10, tint: '#010402', opacity: 0.74 }
 
 test('every color is one the design system knows, and Desktop will paint it', () => {
-  for (const palette of [COLORS, PAPER_COLORS]) {
+  for (const palette of [COLORS, ...TONES.map(tone => PAPER_COLORS[tone])]) {
     const lines = checkColors(palette)
 
     // What's left are contrast notes under the design system's own bar.
@@ -35,7 +35,7 @@ test('every glyph fits its box in four strokes or fewer', () => {
 })
 
 test('both still scenes stay pure vector and under the size limit', () => {
-  for (const scene of [SCENE, PAPER_SCENE]) {
+  for (const scene of [SCENE, ...TONES.map(tone => PAPER_SCENES[tone])]) {
     expect(scene.length).toBeLessThan(131072)
 
     for (const banned of ['<image', 'data:', '@import', '@font-face', 'CDATA', '<!--', '&#', 'foreignObject', 'feImage']) {
@@ -54,12 +54,14 @@ test('the desktop backdrop plays the shader over the still scene', async $ => {
   await ui.unmount()
 })
 
-test('the paper backdrop plays the shader over the paper scene', async $ => {
-  const ui = await $.ui.mount({ ...BACKDROP, props: { plugin: 'digital-rain', scene: 'paper', glass: { blur: 6, opacity: 0.8 } } })
+test('each paper tone plays the shader over its own paper scene', async $ => {
+  for (const tone of TONES) {
+    const ui = await $.ui.mount({ ...BACKDROP, props: { plugin: 'digital-rain', scene: `paper-${tone}`, glass: { blur: 6, opacity: 0.8 } } })
 
-  expect(await ui.find({ type: 'Shader' })).toBeDefined()
-  expect(await ui.find({ type: 'Svg' })).toBeDefined()
-  await ui.unmount()
+    expect(await ui.find({ type: 'Shader' })).toBeDefined()
+    expect(await ui.find({ type: 'Svg' })).toBeDefined()
+    await ui.unmount()
+  }
 })
 
 test("another mod's scene is left alone", async $ => {

@@ -4,6 +4,7 @@
 // Each glyph is defined once and placed with <use>, which keeps the file small.
 
 import { GLYPHS } from './glyphs'
+import type { Tone } from './look'
 
 const n = (x: number) => Math.round(x * 10) / 10
 
@@ -119,17 +120,46 @@ ${levels}
 }
 `
 
-// Paper: the same rain as e-ink, charcoal on a warm grey page with a fine
-// grain, the leading glyphs in muted green, nothing glowing. Always light.
-const PAPER_STYLE = `
-.bg { fill: #eae7de; }
-.edge { stop-color: #5e5240; stop-opacity: 0.1; }
-.calm { stop-color: #eae7de; }
-.far { fill: none; stroke: #8f958e; stroke-width: 1.2; stroke-linecap: round; opacity: 0.3; filter: url(#soft); }
-.near { fill: none; stroke: #59615a; stroke-width: 2.1; stroke-linecap: round; }
-.hd { stroke: #33694a; stroke-opacity: 1; }
-.grain { opacity: 0.07; }
+// Paper: the same rain as e-ink, nothing glowing, in three tones. By day a
+// page with a fine grain and ink on it; by night, when the app is dark,
+// e-ink's dark mode: a charcoal page and light grey ink. The shader reads
+// which shows from this picture, so the night page must stay dark.
+type Ink = { page: string; edge: string; far: string; near: string; head: string }
+
+const PAPER_INKS: Record<Tone, { day: Ink; night: Ink }> = {
+  warm: {
+    day: { page: '#eae7de', edge: '#5e5240', far: '#8f958e', near: '#59615a', head: '#33694a' },
+    night: { page: '#1b1b19', edge: '#000000', far: '#6f6e69', near: '#a9a69e', head: '#8fc19b' },
+  },
+  sepia: {
+    day: { page: '#ece2cc', edge: '#6a4f2c', far: '#9d927f', near: '#62503d', head: '#4d6b38' },
+    night: { page: '#1e1a15', edge: '#000000', far: '#756c5e', near: '#b5a891', head: '#adbf80' },
+  },
+  slate: {
+    day: { page: '#e0e4e7', edge: '#3c4a58', far: '#8b949b', near: '#4f5b66', head: '#226b5e' },
+    night: { page: '#181b1e', edge: '#000000', far: '#666e75', near: '#a2abb2', head: '#80c4b5' },
+  },
+}
+
+const inkRules = (ink: Ink, grain: number) => `
+  .bg { fill: ${ink.page}; }
+  .edge { stop-color: ${ink.edge}; stop-opacity: 0.12; }
+  .calm { stop-color: ${ink.page}; }
+  .far { stroke: ${ink.far}; }
+  .near { stroke: ${ink.near}; }
+  .hd { stroke: ${ink.head}; }
+  .grain { opacity: ${grain}; }
+`
+
+const paperStyle = (tone: Tone) => `
+.far { fill: none; stroke-width: 1.2; stroke-linecap: round; opacity: 0.3; filter: url(#soft); }
+.near { fill: none; stroke-width: 2.1; stroke-linecap: round; }
+.hd { stroke-opacity: 1; }
+${inkRules(PAPER_INKS[tone].day, 0.07)}
 ${levels}
+@media (prefers-color-scheme: dark) {
+${inkRules(PAPER_INKS[tone].night, 0.04)}
+}
 `
 
 function picture(style: string, grain: boolean): string {
@@ -170,5 +200,9 @@ function picture(style: string, grain: boolean): string {
 // The green rain and the white room, by the app's mode.
 export const SCENE = picture(STYLE, false)
 
-// The paper room.
-export const PAPER_SCENE = picture(PAPER_STYLE, true)
+// The paper room, a picture for each tone.
+export const PAPER_SCENES: Record<Tone, string> = {
+  warm: picture(paperStyle('warm'), true),
+  sepia: picture(paperStyle('sepia'), true),
+  slate: picture(paperStyle('slate'), true),
+}

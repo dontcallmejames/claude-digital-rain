@@ -5,8 +5,11 @@
 // falls softly in grey-green with deep-green leading glyphs. The shader can't
 // ask which mode the app shows, so it reads it from the still scene under it,
 // which paints itself white or black by the mode. The third room, paper, the
-// mod names with `paper`: the rain as e-ink, charcoal on a warm grey page,
-// each glyph leaving a faint ghost behind as e-ink does, and nothing glowing.
+// mod names with `paper`: the rain as e-ink, charcoal on a page, each glyph
+// leaving a faint ghost behind as e-ink does, and nothing glowing. Paper comes
+// in three tones (`tone`: warm grey, sepia, slate), each with a night paper,
+// e-ink's dark mode, shown when the app is dark. On paper the drops glide:
+// the next cell inks in as a head nears it instead of the head jumping.
 //
 // One flat grid of glyph columns, as the classic look has it. Each column
 // carries two drops at its own speed. A drop's head lights the cell it reaches
@@ -157,8 +160,9 @@ const STROKES = table([
   [-9, -9, -9, -9],
 ])
 
-// 1 for the paper room. The mod sets it with the scene.
-const v = values({ paper: [0, 1] })
+// 1 for the paper room, and its tone: 0 warm grey, 1 sepia, 2 slate. The mod
+// sets both with the scene.
+const v = values({ paper: [0, 1], tone: [0, 2] })
 
 // The grid: cell width in points, and its height.
 const W = 15
@@ -174,10 +178,38 @@ const AIR = vec3(0.955, 0.965, 0.958)
 const MIST = vec3(0.56, 0.67, 0.6)
 const INK = vec3(0.04, 0.46, 0.2)
 
-// Paper: a warm grey e-ink page, charcoal ink, and a muted e-ink green.
-const PAPER = vec3(0.918, 0.906, 0.871)
-const GRAPHITE = vec3(0.17, 0.2, 0.18)
-const MOSS = vec3(0.2, 0.42, 0.29)
+// Paper, by tone (warm grey, sepia, slate): the page, the ink and the muted
+// e-ink green of the leading glyphs, by day and by night.
+const PAGE_DAY = table([
+  [0.918, 0.906, 0.871],
+  [0.925, 0.886, 0.8],
+  [0.878, 0.894, 0.906],
+])
+const INK_DAY = table([
+  [0.17, 0.2, 0.18],
+  [0.24, 0.18, 0.12],
+  [0.14, 0.18, 0.22],
+])
+const HEAD_DAY = table([
+  [0.2, 0.42, 0.29],
+  [0.3, 0.42, 0.22],
+  [0.13, 0.42, 0.37],
+])
+const PAGE_NIGHT = table([
+  [0.105, 0.105, 0.098],
+  [0.118, 0.102, 0.082],
+  [0.094, 0.106, 0.118],
+])
+const INK_NIGHT = table([
+  [0.78, 0.77, 0.72],
+  [0.83, 0.77, 0.66],
+  [0.74, 0.79, 0.82],
+])
+const HEAD_NIGHT = table([
+  [0.56, 0.76, 0.61],
+  [0.68, 0.75, 0.5],
+  [0.5, 0.77, 0.71],
+])
 
 // A whole-number hash of three numbers, from 0 to 1.
 function hash(a: number, b: number, c: number): number {
@@ -196,7 +228,7 @@ function stroke(q: Vec2, a: Vec2, b: Vec2): number {
 
 // The grid at q (points, y up): how bright the glyph light is there, with
 // heads counted double. `reveal` is how hard the pointer is lighting this spot,
-// `now` the rain's clock and `paper` 1 in the paper room.
+// `now` the rain's clock and `paper` 1 in the paper room, where the drops glide.
 function rain(q: Vec2, reveal: number, now: number, paper: number): number {
   const top = size.y - q.y
   const col = floor(q.x / W)
@@ -217,14 +249,23 @@ function rain(q: Vec2, reveal: number, now: number, paper: number): number {
   for (const k of range(2)) {
     const along = run + k * period * 0.5
     const pass = floor(along / period)
-    const headRow = floor(along - pass * period) - 3
+    const head = along - pass * period - 3
     const span = mix(6, 26, hash(col + 97 * k, pass, 4))
-    const d = headRow - row
+
+    // Stepped, as the classic look has it: the head jumps a cell at a time.
+    const d = floor(head) - row
     const on = step(0, d) * step(d, span)
     const fade = max(1 - d / span, 0)
 
-    lit = max(lit, on * fade * fade)
-    lead = max(lead, on * step(d, 0.5))
+    // Gliding, on paper: the next cell inks in as the head nears it, and the
+    // head hands over to it bit by bit, so the fall looks continuous.
+    const glide = head - row
+    const arrive = clamp(glide + 1, 0, 1)
+    const fadeSmooth = max(1 - max(glide, 0) / span, 0)
+    const onSmooth = arrive * step(glide, span)
+
+    lit = max(lit, mix(on * fade * fade, onSmooth * fadeSmooth * fadeSmooth, paper))
+    lead = max(lead, mix(on * step(d, 0.5), arrive * (1 - clamp(glide, 0, 1)), paper))
   }
 
   // A press starts fast drops in the five columns around it.
@@ -380,12 +421,18 @@ export default shader({
       const tint = vec3(mix(MIST, INK, hot))
       const white = vec3(mix(mix(air, tint, print), INK, ring * 0.12))
 
-      // Paper: e-ink. A warm grey page with a fine still grain, the rain in
-      // soft charcoal, the leading glyphs in muted green, nothing that glows.
+      // Paper: e-ink. A page with a fine still grain, the rain in soft ink,
+      // the leading glyphs in a muted green, nothing that glows. By night
+      // the page is charcoal and the ink a light grey, printed a little
+      // lighter so it doesn't glare.
+      const tone = floor(v.tone + 0.5)
+      const paperPage = vec3(mix(PAGE_NIGHT.at(tone), PAGE_DAY.at(tone), day))
+      const paperInk = vec3(mix(INK_NIGHT.at(tone), INK_DAY.at(tone), day))
+      const paperHead = vec3(mix(HEAD_NIGHT.at(tone), HEAD_DAY.at(tone), day))
       const grain = hash(floor(p.point.x / 1.4), floor(p.point.y / 1.4), 77) - 0.5
-      const page = vec3(PAPER * (1 + grain * 0.035) * (1 - 0.05 * (1 - edge)))
-      const inked = clamp(light * 0.5 * middle, 0, 0.9)
-      const sheet = vec3(mix(mix(page, mix(GRAPHITE, MOSS, hot), inked), GRAPHITE, ring * 0.14))
+      const page = vec3(paperPage * (1 + grain * mix(0.08, 0.035, day)) * (1 - 0.05 * (1 - edge)))
+      const inked = clamp(light * mix(0.4, 0.5, day) * middle, 0, 0.9)
+      const sheet = vec3(mix(mix(page, mix(paperInk, paperHead, hot), inked), paperInk, ring * 0.14))
 
       return vec4(vec3(mix(mix(night, white, day), sheet, paper)), 1)
     }),
