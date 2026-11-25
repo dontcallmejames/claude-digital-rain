@@ -180,3 +180,101 @@ export const SOUND: ThemeSound = {
     },
   },
 }
+
+// Paper: the rain printed on e-ink. A warm grey page, charcoal ink, the
+// leading glyphs in the muted green a color e-ink screen gives, and nothing
+// that glows. It is a look of its own, always light, with its own palette.
+const paper = makeColors({
+  label: 'Digital Rain Paper',
+  only: 'light',
+  roles: { accent: '#3f7a55', danger: '#a8453b', success: '#3d7f74', warning: '#9a7420', pro: '#4d5f9a' },
+  light: {
+    gray: {
+      anchors: {
+        'surface-0': '#e4e0d6',
+        'surface-1': '#ebe8df',
+        'surface-2': '#f3f1ea',
+        'text-primary': '#1f2622',
+        'text-secondary': '#434b45',
+        'text-muted': '#5c645e',
+      },
+    },
+  },
+})
+
+export const PAPER_COLORS: ThemeColors = {
+  ...paper.theme,
+  inputs: {
+    light: {
+      ...paper.theme.inputs.light,
+      'bg-user-message': '#e2e7df',
+      'text-user-message': '#1b2a20',
+      'bg-assistant-message': '#f5f2eb',
+      'text-assistant-message': '#1f2622',
+    },
+  },
+}
+
+export const PAPER_PROBLEMS = paper.problems
+
+// Claude's replies are pages: a paper card with a hairline rule, a whisper of
+// shadow and the console's corner brackets in ink, set in a bookish serif.
+const PAGE: ThemeMessageRule = {
+  color: 'text-assistant-message',
+  backgroundColor: 'bg-assistant-message',
+  fill: {
+    vector: {
+      viewBox: 48,
+      slice: 14,
+      paths: [
+        { d: 'M0 0H48V48H0Z', color: 'bg-assistant-message' },
+        { d: 'M0.5 0.5H47.5V47.5H0.5Z', color: 'border', strokeWidth: 1 },
+        { d: 'M1 11V1H11', color: 'text-accent', strokeWidth: 1.2 },
+        { d: 'M47 37V47H37', color: 'text-accent', strokeWidth: 1.2 },
+      ],
+    },
+  },
+  shadow: { x: 0, y: 1, blur: 3, color: '#2a221418' },
+  paddingY: 16,
+  paddingX: 20,
+}
+
+// The person's messages stay operator input, in monospace with the caret,
+// on a faintly green-grey slip of paper.
+const SLIP: ThemeMessageRule = {
+  ...INPUT,
+  fontFamily: ['mono'],
+  fontSize: 14,
+  lineHeight: 22,
+  shadow: { x: 0, y: 1, blur: 2, color: '#2a221414' },
+}
+
+export const PAPER_STYLE: ThemeStyle = {
+  Text: { fontFamily: ['serif'], fontSize: 16, lineHeight: 25 },
+  Heading: { fontFamily: ['mono'], fontWeight: 'bold', letterSpacing: 1.2, color: 'text-accent' },
+  UserMessage: SLIP,
+  AssistantMessage: PAGE,
+  ToolUse: { ...TOOL, radius: 2 },
+}
+
+// Softer than the console: a hush of room tone, the odd soft tick, and cues
+// played on rounded tones instead of square ones.
+export const PAPER_SOUND: ThemeSound = {
+  ambience: {
+    layers: [
+      { wave: 'pink', drone: true, gain: 0.02, filter: { type: 'lowpass', hz: 900 } },
+      { wave: 'crackle', scatter: 0.6, gain: 0.02, filter: { type: 'bandpass', hz: 2500 }, attack: 0.003, release: 0.03 },
+      { wave: 'sine', notes: ['A4', 'C5', 'E5', 'G5'], scatter: 0.05, gain: 0.03, attack: 0.02, release: 0.8 },
+    ],
+    reverb: 0.3,
+  },
+  cues: {
+    send: { layers: [{ wave: 'sine', notes: ['E5'], glide: -2, attack: 0.004, release: 0.08, gain: 0.12 }] },
+    tool: { layers: [{ wave: 'pink', filter: { type: 'bandpass', hz: 3000 }, attack: 0.003, release: 0.02, gain: 0.05 }] },
+    compact: { layers: [{ wave: 'pink', filter: { type: 'lowpass', hz: 1800, to: 400 }, attack: 0.08, release: 0.6, gain: 0.12 }] },
+    done: { layers: [{ wave: 'triangle', notes: ['A4', 'C5', 'E5'], step: 0.07, release: 0.35, gain: 0.12 }], reverb: 0.3 },
+    ask: { layers: [{ wave: 'triangle', notes: ['E5', 'A5'], step: 0.12, release: 0.15, gain: 0.12 }] },
+    error: { layers: [{ wave: 'triangle', notes: ['A3', 'G#3'], step: 0.15, filter: { type: 'lowpass', hz: 900 }, release: 0.3, gain: 0.15 }] },
+    click: { layers: [{ wave: 'sine', notes: ['A4', 'C5', 'D5', 'E5', 'G5', 'A5'], attack: 0.004, release: 0.1, gain: 0.12 }] },
+  },
+}

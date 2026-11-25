@@ -119,31 +119,56 @@ ${levels}
 }
 `
 
-export const SCENE = [
-  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${WIDTH} ${HEIGHT}" preserveAspectRatio="xMidYMid slice">`,
-  `<style>${STYLE}</style>`,
-  '<defs>',
-  '<filter id="bloom" x="-1" y="-1" width="3" height="3">',
-  '<feGaussianBlur in="SourceGraphic" stdDeviation="2.4" result="b"/>',
-  '<feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>',
-  '</filter>',
-  '<filter id="soft"><feGaussianBlur stdDeviation="1.2"/></filter>',
-  '<radialGradient id="shade" cx="0.5" cy="0.5" r="0.75">',
-  '<stop offset="0.45" stop-color="#000" stop-opacity="0"/>',
-  '<stop class="edge" offset="1"/>',
-  '</radialGradient>',
-  '<linearGradient id="calm" x1="0" x2="1" y1="0" y2="0">',
-  '<stop class="calm" offset="0.28" stop-opacity="0"/>',
-  '<stop class="calm" offset="0.5" stop-opacity="0.4"/>',
-  '<stop class="calm" offset="0.72" stop-opacity="0"/>',
-  '</linearGradient>',
-  far.defs,
-  near.defs,
-  '</defs>',
-  `<rect class="bg" width="${WIDTH}" height="${HEIGHT}"/>`,
-  `<g class="far">${far.body}</g>`,
-  `<g class="near">${near.body}</g>`,
-  `<rect width="${WIDTH}" height="${HEIGHT}" fill="url(#calm)"/>`,
-  `<rect width="${WIDTH}" height="${HEIGHT}" fill="url(#shade)"/>`,
-  '</svg>',
-].join('')
+// Paper: the same rain as e-ink, charcoal on a warm grey page with a fine
+// grain, the leading glyphs in muted green, nothing glowing. Always light.
+const PAPER_STYLE = `
+.bg { fill: #eae7de; }
+.edge { stop-color: #5e5240; stop-opacity: 0.1; }
+.calm { stop-color: #eae7de; }
+.far { fill: none; stroke: #8f958e; stroke-width: 1.2; stroke-linecap: round; opacity: 0.3; filter: url(#soft); }
+.near { fill: none; stroke: #59615a; stroke-width: 2.1; stroke-linecap: round; }
+.hd { stroke: #33694a; stroke-opacity: 1; }
+.grain { opacity: 0.07; }
+${levels}
+`
+
+function picture(style: string, grain: boolean): string {
+  return [
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${WIDTH} ${HEIGHT}" preserveAspectRatio="xMidYMid slice">`,
+    `<style>${style}</style>`,
+    '<defs>',
+    '<filter id="bloom" x="-1" y="-1" width="3" height="3">',
+    '<feGaussianBlur in="SourceGraphic" stdDeviation="2.4" result="b"/>',
+    '<feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>',
+    '</filter>',
+    '<filter id="soft"><feGaussianBlur stdDeviation="1.2"/></filter>',
+    grain
+      ? '<filter id="paper"><feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch"/><feColorMatrix type="saturate" values="0"/></filter>'
+      : '',
+    '<radialGradient id="shade" cx="0.5" cy="0.5" r="0.75">',
+    '<stop offset="0.45" stop-color="#000" stop-opacity="0"/>',
+    '<stop class="edge" offset="1"/>',
+    '</radialGradient>',
+    '<linearGradient id="calm" x1="0" x2="1" y1="0" y2="0">',
+    '<stop class="calm" offset="0.28" stop-opacity="0"/>',
+    '<stop class="calm" offset="0.5" stop-opacity="0.4"/>',
+    '<stop class="calm" offset="0.72" stop-opacity="0"/>',
+    '</linearGradient>',
+    far.defs,
+    near.defs,
+    '</defs>',
+    `<rect class="bg" width="${WIDTH}" height="${HEIGHT}"/>`,
+    grain ? `<rect class="grain" width="${WIDTH}" height="${HEIGHT}" filter="url(#paper)"/>` : '',
+    `<g class="far">${far.body}</g>`,
+    `<g class="near">${near.body}</g>`,
+    `<rect width="${WIDTH}" height="${HEIGHT}" fill="url(#calm)"/>`,
+    `<rect width="${WIDTH}" height="${HEIGHT}" fill="url(#shade)"/>`,
+    '</svg>',
+  ].join('')
+}
+
+// The green rain and the white room, by the app's mode.
+export const SCENE = picture(STYLE, false)
+
+// The paper room.
+export const PAPER_SCENE = picture(PAPER_STYLE, true)

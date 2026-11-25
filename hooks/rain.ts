@@ -1,10 +1,12 @@
 // Digital rain, played on the GPU behind the conversation.
 //
-// Two rooms, one rain. In dark mode it is green light on black glass; in
+// Three rooms, one rain. In dark mode it is green light on black glass; in
 // light mode it is the white room, a bright empty space where the same rain
 // falls softly in grey-green with deep-green leading glyphs. The shader can't
 // ask which mode the app shows, so it reads it from the still scene under it,
-// which paints itself white or black by the mode.
+// which paints itself white or black by the mode. The third room, paper, the
+// mod names with `paper`: the rain as e-ink, charcoal on a warm grey page,
+// each glyph leaving a faint ghost behind as e-ink does, and nothing glowing.
 //
 // One flat grid of glyph columns, as the classic look has it. Each column
 // carries two drops at its own speed. A drop's head lights the cell it reaches
@@ -46,6 +48,7 @@ import {
   table,
   time,
   unsigned,
+  values,
   vec2,
   vec3,
   vec4,
@@ -154,6 +157,9 @@ const STROKES = table([
   [-9, -9, -9, -9],
 ])
 
+// 1 for the paper room. The mod sets it with the scene.
+const v = values({ paper: [0, 1] })
+
 // The grid: cell width in points, and its height.
 const W = 15
 const H = 19.2
@@ -167,6 +173,11 @@ const HEAD = vec3(0.8, 1.0, 0.88)
 const AIR = vec3(0.955, 0.965, 0.958)
 const MIST = vec3(0.56, 0.67, 0.6)
 const INK = vec3(0.04, 0.46, 0.2)
+
+// Paper: a warm grey e-ink page, charcoal ink, and a muted e-ink green.
+const PAPER = vec3(0.918, 0.906, 0.871)
+const GRAPHITE = vec3(0.17, 0.2, 0.18)
+const MOSS = vec3(0.2, 0.42, 0.29)
 
 // A whole-number hash of three numbers, from 0 to 1.
 function hash(a: number, b: number, c: number): number {
@@ -184,8 +195,9 @@ function stroke(q: Vec2, a: Vec2, b: Vec2): number {
 }
 
 // The grid at q (points, y up): how bright the glyph light is there, with
-// heads counted double. `reveal` is how hard the pointer is lighting this spot.
-function rain(q: Vec2, reveal: number): number {
+// heads counted double. `reveal` is how hard the pointer is lighting this spot,
+// `now` the rain's clock and `paper` 1 in the paper room.
+function rain(q: Vec2, reveal: number, now: number, paper: number): number {
   const top = size.y - q.y
   const col = floor(q.x / W)
   const row = floor(top / H)
@@ -198,7 +210,7 @@ function rain(q: Vec2, reveal: number): number {
   const column = hash(col, 7, 1)
   const speed = mix(5, 13, column)
   const period = rows + mix(10, 48, fract(column * 7.31))
-  const run = time * speed + fract(column * 13.7) * period
+  const run = now * speed + fract(column * 13.7) * period
   let lit = 0
   let lead = 0
 
@@ -236,7 +248,7 @@ function rain(q: Vec2, reveal: number): number {
   const cellHash = hash(col, row, 5)
   const changes = step(0.74, cellHash)
   const rate = mix(0.25, 1.1, fract(cellHash * 9.31))
-  const era = floor(time * rate * changes + fract(cellHash * 17.7) * 64)
+  const era = floor(now * rate * changes + fract(cellHash * 17.7) * 64)
   const g = floor(hash(col * 31 + row, era, 8) * COUNT)
   const mirror = step(0.5, fract(cellHash * 29.3))
   const gx = mix(fx, 1 - fx, mirror)
@@ -256,28 +268,30 @@ function rain(q: Vec2, reveal: number): number {
   }
 
   const half = W * 0.072
-  const soft = px * 0.75 + W * 0.012
+  // Ink on paper spreads a touch, and its glow is only a faint bleed.
+  const soft = px * 0.75 + W * mix(0.012, 0.03, paper)
   const ink = smoothstep(half + soft, half - soft, near)
   const hold = smoothstep(0.5, 0.3, abs(fx - 0.5)) * smoothstep(0.5, 0.33, abs(fy - 0.5))
-  const bloom = exp(-near / (W * 0.16)) * hold
+  const bloom = exp(-near / (W * 0.16)) * hold * mix(1, 0.25, paper)
 
   // Each glyph keeps its own brightness, as the grain of a screen would.
   const tone = mix(0.68, 1.0, fract(cellHash * 41.9))
-  const level = max(lit * tone, reveal * 0.34)
+  // On paper every glyph leaves a faint ghost, as an e-ink screen does.
+  const level = max(max(lit * tone, reveal * 0.34), paper * 0.035)
 
   return (ink * level + bloom * level * 0.5) * (1 - lead) + (ink * 1.35 + bloom * 1.1) * lead * 2
 }
 
 // Far behind the grid: soft out-of-focus streaks in narrower columns,
 // falling smoothly and more slowly. No glyphs, so it costs little.
-function haze(q: Vec2): number {
+function haze(q: Vec2, now: number): number {
   const w = 9
   const top = size.y - q.y
   const col = floor(q.x / w)
   const fx = q.x / w - col - 0.5
   const column = hash(col, 3, 2)
   const period = size.y / w + mix(10, 60, fract(column * 7.31))
-  const head = mod(time * mix(2.5, 6, column) + fract(column * 13.7) * period, period) - 4
+  const head = mod(now * mix(2.5, 6, column) + fract(column * 13.7) * period, period) - 4
   const span = mix(10, 34, fract(column * 3.17))
   const d = head - top / w
   const trail = smoothstep(-0.8, 0.4, d) * smoothstep(span, 0, d)
@@ -341,8 +355,10 @@ export default shader({
       }
 
       const day = room.at(vec2(0, 0)).x
+      const paper = v.paper
+      const now = time
       const reveal = glow.sample(p.uv).x
-      const light = rain(q, reveal) + haze(q) * 0.3
+      const light = rain(q, reveal, now, paper) + haze(q, now) * mix(0.3, 0.12, paper)
       const hot = smoothstep(0.8, 1.9, light)
       const uv = vec2(p.uv)
       const middle = 1 - 0.38 * smoothstep(0.3, 0.1, abs(uv.x - 0.5))
@@ -364,7 +380,14 @@ export default shader({
       const tint = vec3(mix(MIST, INK, hot))
       const white = vec3(mix(mix(air, tint, print), INK, ring * 0.12))
 
-      return vec4(vec3(mix(night, white, day)), 1)
+      // Paper: e-ink. A warm grey page with a fine still grain, the rain in
+      // soft charcoal, the leading glyphs in muted green, nothing that glows.
+      const grain = hash(floor(p.point.x / 1.4), floor(p.point.y / 1.4), 77) - 0.5
+      const page = vec3(PAPER * (1 + grain * 0.035) * (1 - 0.05 * (1 - edge)))
+      const inked = clamp(light * 0.5 * middle, 0, 0.9)
+      const sheet = vec3(mix(mix(page, mix(GRAPHITE, MOSS, hot), inked), GRAPHITE, ring * 0.14))
+
+      return vec4(vec3(mix(mix(night, white, day), sheet, paper)), 1)
     }),
   ],
 })

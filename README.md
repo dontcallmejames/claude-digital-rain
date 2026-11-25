@@ -1,9 +1,10 @@
 # Digital Rain
 
-A theme for the Claude desktop app: falling columns of glowing glyphs behind your conversation, drawn live on your GPU. It has two looks:
+A theme for the Claude desktop app: falling columns of glowing glyphs behind your conversation, drawn live on your GPU. It has three looks:
 
 - **Green rain** (the default): phosphor-green glyphs on black glass, each column led by a white-hot glyph.
 - **White room**: a bright, empty white space where the same rain falls softly in grey-green.
+- **Paper**: the rain as e-ink, soft charcoal on a warm grey page, with muted green leading glyphs and Claude's replies set in a bookish serif.
 
 ![Green rain](docs/green-rain.png)
 
@@ -49,7 +50,8 @@ Already inside a Claude Code session? Type this at its prompt instead:
   | --- | --- |
   | `/digital-rain dark` | the green rain (the default) |
   | `/digital-rain light` | the white room |
-  | `/digital-rain auto` | whichever matches your computer's light or dark setting |
+  | `/digital-rain paper` | the e-ink paper look |
+  | `/digital-rain auto` | the green rain or the white room, matching your computer's light or dark setting |
 
 - **Hover** over the background: the hidden glyphs between the drops light up around your pointer.
 - **Click** the background: a ripple runs out through the rain, and a burst of fast drops falls from where you clicked.
@@ -65,6 +67,8 @@ To switch it off without removing it, use `claude plugin disable digital-rain`, 
 
 ## More about it
 
+![The paper look](docs/paper.png)
+
 ![The white room, with a ripple from a click](docs/white-room.png)
 
 ![Hovering at the upper right and a click on the left](docs/green-rain-pointer.png)
@@ -72,7 +76,8 @@ To switch it off without removing it, use `claude plugin disable digital-rain`, 
 *These previews are software renders of the shader's own math, not screenshots of the app.*
 
 - **The rain**: one grid of glyph columns, each falling at its own speed, over a slow out-of-focus haze for depth. The glyphs stand still while the light runs down them; some are mirrored, and some change now and then. All 24 glyphs are original, drawn for this theme.
-- **Messages**: Claude's replies are readout panels with glowing corner brackets; yours are input lines with a `>` caret; everything is in monospace.
+- **Messages**: Claude's replies are readout panels with glowing corner brackets; yours are input lines with a `>` caret; everything is in monospace. On paper, Claude's replies become paper cards in a serif.
+- **Paper, up close**: a fine still grain in the page, ink that spreads a touch instead of glowing, and a faint ghost of every glyph, the way e-ink screens keep traces of old pages.
 - **Easy on the eyes**: nothing flickers faster than about once a second, and the rain dims behind the text you're reading. With Reduce Motion on, or on a phone, you get a still frame of the rain instead.
 
 ### Inside
@@ -80,10 +85,10 @@ To switch it off without removing it, use `claude plugin disable digital-rain`, 
 | File | What it holds |
 | --- | --- |
 | `hooks/register.tsx` | the hooks: sets the theme, draws the backdrop, answers `/digital-rain` |
-| `hooks/rain.ts` | the GPU shader: rain, hover, ripple and bursts, both looks |
+| `hooks/rain.ts` | the GPU shader: rain, hover, ripple and bursts, in all three looks |
 | `hooks/glyphs.ts` | the glyph designs, as strokes in a unit box |
-| `hooks/scene.ts` | the still frame shown where the shader doesn't play |
-| `hooks/look.ts` | colors for both modes, message styles and the sound |
+| `hooks/scene.ts` | the still frames shown where the shader doesn't play |
+| `hooks/look.ts` | colors, message styles and sounds for each look |
 | `tests/` | checks for the colors, glyphs, scene and backdrop (`claude plugin test .`) |
 
 `hooks/rain.ts` holds the glyph strokes as a literal table, since a shader can't import: change it together with `hooks/glyphs.ts`.

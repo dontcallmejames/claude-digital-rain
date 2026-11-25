@@ -1,7 +1,7 @@
 {
   "name": "digital-rain",
-  "version": "0.1.0",
-  "description": "A phosphor-green operator's console for the desktop app: falling glyph rain on the GPU that answers the pointer, terminal-style messages and a low machine-room soundscape.",
+  "version": "0.2.0",
+  "description": "A digital-rain theme for the desktop app: glyph rain on the GPU that answers the pointer, in three looks (green rain, the white room and e-ink paper), with terminal-style messages and a quiet soundscape.",
   "author": {
     "name": "dontcallmejames"
   },
